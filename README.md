@@ -10,9 +10,9 @@
 | 역할 | 이름 | GitHub |
 |------|------|--------|
 | 팀장 | 이수민 | [@Leesoomin97](https://github.com/Leesoomin97) |
-| 팀원 | 권문진 |  |
-| 팀원 | 고민서 |  |
-| 팀원 | 허예경 |  |
+| 팀원 | 권문진 | [@moongs95](https://github.com/moongs95)|
+| 팀원 | 고민서 | [@imeanseo](https://github.com/imeanseo)|
+| 팀원 | 허예경 | [@yekyung821](https://github.com/yekyung821)|
 
 ---
 
