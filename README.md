@@ -160,6 +160,57 @@ EDA를 통해 다음과 같은 데이터 특성과 문제점을 확인했다.
 
 ---
 
+### 2.2.1 EDA 시각화 분석
+
+아래 시각화를 통해 데이터의 구조적 특성과 한계를 확인할 수 있다.
+
+#### (1) 대표 품목의 월별 total_value 시계열
+![대표 품목 시계열](https://github.com/user-attachments/assets/9a3e5ce1-88bb-43bb-81d2-487d522f21c2)
+
+5개 active item의 월별 거래 패턴을 보면:
+- 품목별 거래 규모(scale) 차이가 매우 크다 (10^7 ~ 10^8 수준)
+- 동일 시점에서도 품목마다 변동 방향이 제각각이다
+- 특정 구간에서 value=0인 월이 빈번하게 관찰된다
+
+![Lag distribution](https://github.com/user-attachments/assets/3499fed5-699c-4d0a-b071-c94ea8b9b44d)
+
+lag-corr 기반으로 추출한 max_corr lag 분포를 보면,
+- 0, ±1, ±2, ±3 등에 폭넓게 퍼져 있고
+- 특정 고정 lag에 집중된 패턴이 나타나지 않는다.
+
+이는 품목마다 반응 시차가 다르며,
+단순한 고정 lag 모델보다 **유연한 lag-corr 기반 feature 설계**가 필요함을 보여준다.
+
+#### (2) HS4별 무역량 집중도 (Pareto 분석)
+![HS4 Pareto](https://github.com/user-attachments/assets/cbaf719a-15a1-4097-9a2e-d7396c1fb243)
+
+- 상위 20% HS4 코드가 전체 무역량의 약 80%를 차지한다
+- HS4 기준 거래 건수 Top 10을 보면 2805, 3824, 2811 등이 주요 품목이다
+- 하지만 **동일 HS4 내에서도 품목 간 패턴 차이가 크다**는 점은 별도 분석에서 확인되었다
+
+#### (3) HS4별 거래 건수 분포
+![HS4 거래 건수](https://github.com/user-attachments/assets/af54f660-0e4e-4136-91a8-cd2123044d63)
+
+- HS4 코드별 거래 건수 편차가 매우 크다
+- 일부 HS4는 200건 이상, 일부는 50건 미만
+- 이는 **HS4 기반 군집 전략의 한계**를 보여주는 근거가 된다
+
+#### (4) Segment별 계절성 분석
+![Segment-wise Seasonality](https://github.com/user-attachments/assets/417d39b6-f6ca-498d-88be-b0a14b472168)
+
+- 거래 활성도(zero 비율) 기준으로 segment를 나눈 결과:
+  - `low_zero` 세그먼트: 연중 활발한 거래, 2022년 초반 약한 상승 추세
+  - `mid_zero` 세그먼트: 연중 거래량이 거의 0에 가까움
+- **월별 계절성(seasonality)은 전반적으로 미약**하다
+- 이는 month feature를 보조 변수로만 활용한 배경이다
+
+이 시각화들은 다음 설계 결정의 근거가 되었다:
+- HS4 군집 대신 **feature-driven pair filtering** 채택
+- 계절성보다는 **lag-corr 중심** 분석 우선
+- **월별 total_value 시계열 + active item 필터링** 구조 설계
+
+---
+
 ### 2.3 시계열 구조화: 월별 total_value & Pivot 설계
 
 EDA 결과를 바탕으로, 다음과 같은 방식으로 시계열을 재구성했다.
@@ -340,6 +391,17 @@ Feature Engineering은 본 문제의 핵심 단계로,
   - `b_roll6_mean`, `b_roll6_std`  
 
 이들은 B의 단기 변동성, 추세, 평균 수준 등을 반영한다.
+
+#### 예시: 단일 품목 시계열과 rolling feature
+
+![Item time series with rolling mean](https://github.com/user-attachments/assets/e3d2a64a-8b94-4f30-bcf3-d65c94b6fc02)
+
+한 품목의 monthly total_value와 3개월 이동평균(roll_mean_3)을 비교하면,
+- 개별 월 value는 변동성이 매우 크지만,
+- rolling mean을 적용하면 완만한 추세와 수준이 드러난다.
+
+이러한 roll_mean / roll_std 계열 피처는
+짧고 noisy한 시계열에서 안정적인 패턴을 추출하는 데 중요한 역할을 한다.
 
 ---
 
@@ -819,8 +881,8 @@ HS2/HS3/HS4 계층적 구조를 활용해
 - `data/`, `outputs/` 폴더는 `.gitignore`에 등록 (업로드 금지)  
 - **모델 실험은 개인에게 할당된 브랜치 기반으로 진행**
   ```bash
-  git checkout -b soomin-dev
-  git push origin soomin-dev
+  git checkout -b 000-dev
+  git push origin 000-dev
   ```
 - `.env` 파일에 **API key, WandB token, Kaggle key 등 민감정보 저장** (커밋 금지)  
 - 제출 파일은 `outputs/submissions/` 내부에 저장  
